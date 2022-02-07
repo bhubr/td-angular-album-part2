@@ -243,4 +243,20 @@ L'application serveur renverra une erreur si l'une de ces deux contraintes n'est
 
 ## Introduction aux Observables
 
+Les `Observable`s offrent une façon unifiée de gérer des flux de données, que celles-ci soient obtenues de façon **synchrone** ou **asynchrone**. Pour voir ce que cela signifie, on va surtout se pencher sur l'aspect asynchrone.
 
+En JavaScript, comme dans la majorité des langages, la façon la plus simple d'obtenir des données est d'effectuer un appel **synchrone**. L'exemple suivant, basé sur Node.js, effectue une requête HTTP avec une bibliothèque de requêtes synchrones, `sync-request` :
+
+```javascript
+const syncRequest = require('sync-request')
+try {
+  const res = syncRequest('GET', 'https://github.com/api/users')
+  const data = res.getBody()
+  console.log(data)
+} catch(err) {
+  console.error(err)
+}
+```
+
+
+utilisés dans Angular sont fournis par une bibliothè
