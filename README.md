@@ -1,5 +1,7 @@
 # TD Angular "Simple Album" - partie 2
 
+> :warning: **Document en cours d'élaboration**
+
 Ce support prend la suite des slides de la partie 1, qui sont hébergés :
 
 * [Sur mon propre serveur](https://td-angular-part1.bhu.ovh/)
