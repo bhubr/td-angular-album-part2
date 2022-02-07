@@ -245,18 +245,111 @@ L'application serveur renverra une erreur si l'une de ces deux contraintes n'est
 
 Les `Observable`s offrent une façon unifiée de gérer des flux de données, que celles-ci soient obtenues de façon **synchrone** ou **asynchrone**. Pour voir ce que cela signifie, on va surtout se pencher sur l'aspect asynchrone.
 
-En JavaScript, comme dans la majorité des langages, la façon la plus simple d'obtenir des données est d'effectuer un appel **synchrone**. L'exemple suivant, basé sur Node.js, effectue une requête HTTP avec une bibliothèque de requêtes synchrones, `sync-request` :
+JavaScript a été, à l'origine, créé pour ajouter de l'interactivité aux pages web. Il a donc intégré, dès le début, des mécanismes de gestion d'évènements. Ceux-ci fonctionnent de façon asynchrone. Par exemple, une certaine fonction (_callback_) va être appelée :
+
+* lorsqu'on clique sur un bouton,
+* ou toutes les _x_ secondes,
+* ou suite au retour d'une requête HTTP
+
+### Asynchrone classique
+
+Nous allons voir trois exemples de code asynchrone, correspondant à ces trois cas de figure.
+
+Ce premier exemple permet de gérer l'évènement `click` sur un bouton :
 
 ```javascript
-const syncRequest = require('sync-request')
-try {
-  const res = syncRequest('GET', 'https://github.com/api/users')
-  const data = res.getBody()
-  console.log(data)
-} catch(err) {
-  console.error(err)
-}
+const btn = document.getElementById('btn');
+
+// Lorsqu'un clic est effectué, la fonction passée comme
+// 2nd paramètre à addEventListener va être appelée
+btn.addEventListener('click', () => {
+  console.log('Le bouton a été cliqué');
+});
 ```
 
+Ce deuxième exemple montre l'appel d'une fonction toutes les 2 secondes :
 
-utilisés dans Angular sont fournis par une bibliothè
+```javascript
+// Cette fois, la fonction à appeler est le 1er paramètre,
+// le 2nd étant l'intervalle de temps en millisecondes
+setInterval(() => {
+  console.log('Message affiché toutes les 2 secondes');
+}, 2000);
+```
+
+Ce troisième exemple montre l'appel d'une fonction suite au retour d'une requête HTTP. Elle utilise l'API "Fetch" disponible dans tous les navigateurs modernes.
+
+```javascript
+fetch('https://api.github.com/users')
+  .then(res => res.json())
+  .then(data => console.log('Utilisateurs GitHub', data));
+```
+
+Ces trois exemples sont visibles [sur CodeSandbox](https://codesandbox.io/s/javascript-asynchrone-3mh5k) - **ouvrez la console** via le bouton situé juste sous le panneau d'affichage, en bas à droite de l'écran.
+
+Les deux premiers exemples ont un point commun : la fonction callback peut être appelée plusieurs fois.
+
+Dans le 3ème exemple, les fonctions passées dans `.then()` ne seront appelée qu'une fois. Un autre point qui distingue ce 3ème exemple est l'utilisation de "promesses" (l'appel `fetch` renvoie une Promise).
+
+Ce qu'il faut en retenir, c'est qu'on a différentes façons de gérer l'appel du callback.
+
+### Asynchrone avec observables
+
+Les observables permettent d'avoir une écriture commune pour gérer l'asynchronisme.
+
+Dans Angular comme dans les exemples qui suivent, les observables sont fournis par la bibliothèque [RxJS](https://rxjs.dev/), dont des déclinaisons existent dans de nombreux autres langages (Java, C#, etc.).
+
+Réécrivons le 1er exemple avec RxJS, et plus particulièrement `fromEvent`, qui crée un observable à partir d'une certaine source d'évènements (un élément du DOM dans le navigateur, un `EventEmitter` dans Node.js, etc.) :
+
+```javascript
+import { fromEvent } from 'rxjs';
+
+const btn = document.getElementById('btn');
+const btnClickObs = fromEvent(btn, 'click');
+btnClickObs.subscribe(() => {
+  console.log('Le bouton a été cliqué');
+});
+```
+
+Un observable _émet_ des valeurs. On peut appeler la méthode `subscribe` d'un observable, et lui passer un callback. Ce callback sera appelé à chaque fois que l'observable émet une valeur.
+
+**Note** : un observable n'émet des valeurs **que** s'il y existe au moins un "abonnement" à cet observable, effectué via `subscribe`.
+
+Réécrivons le second exemple, en utilisant la fonction `interval` fournie par RxJS :
+
+```javascript
+import { interval } from 'rxjs';
+
+const intvObs = interval(2000);
+intvObs.subscribe((n) => {
+  console.log('Message affiché toutes les 2 secondes', n);
+});
+```
+
+Il y a une petite différence avec `setInterval` : l'observable créé via `interval` émet une séquence de nombres (`n`) démarrant à zéro.
+
+Enfin, réécrivons le 3ème exemple, cette fois en créant nous-mêmes un `Observable` :
+
+```javascript
+import { Observable } from 'rxjs';
+
+const httpObs = new Observable(subscriber => {
+  fetch('https://api.github.com/users')
+    .then(res => res.json())
+    .then(data => subscriber.next(data));
+});
+httpObs.subscribe((data) => {
+  console.log('Utilisateurs GitHub', data);
+});
+```
+
+Ces trois exemples sont accessibles [sur CodeSandbox](https://codesandbox.io/s/javascript-rxjs-observables-vs2pi).
+
+Qu'est-ce qui change par rapport aux versions initiales ?
+
+Dans tous les cas, on a maintenant des observables (`btnClickObs`, `intvObs` et `httpObs`) sur lesquels on appelle une méthode `subscribe`. On passe à cette méthode `subscribe` un callback, qui est appelé quand l'observable émet une donnée.
+
+Ce qu'il faut en retenir, c'est que les observables permettent de gérer les évènements de façon unifiée, quelle que soit la source de ces évènements.
+
+Les observables permettent également d'effectuer des traitements, entre l'émission de la donnée par l'observable, et sa récupération dans le callback (ce qu'on n'a pas fait ici).
+
