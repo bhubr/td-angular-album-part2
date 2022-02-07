@@ -151,3 +151,96 @@ Dans `navbar.component.html`, ajouter à la liste de liens :
 ```html
 <li><a routerLink="/register">Register</a></li>
 ```
+
+### Envoi des données vers l'API
+
+On a déjà créé un service, `PostService` était dédié à l'envoi de requêtes HTTP vers l'API. Plus précisément, des requêtes concernant les _posts_. Afin de ne pas le "surcharger", on va créer un service dédié à l'authentification.
+
+```
+ng g s authentication --skip-tests
+```
+
+Dans ce service, on va :
+
+* Importer le `HttpClient` d'Angular, et le référencer dans les paramètres du constructeur.
+* Définir des attributs pour l'URL de base de l'API (`serverUrl`) et le chemin relatif vers le _endpoint_ register (`registerPath`). Notez qu'avoir une valeur hardcodée pour `serverUrl` n'est pas une bonne pratique (il vaut mieux à cette fin utiliser les [environnements](https://www.softfluent.fr/blog/angular-6-bien-demarrer-lutilisation-parametres-configuration-dans-environnements/)).
+* Implémenter une méthode `register` qui va envoyer les données du formulaire d'inscription (un objet contenant des champs `login` et `pwd`) vers le _endpoint_ register.
+
+Voici le code TypeScript correspondant, à ce stade :
+
+```typescript
+// src/app/authentication.service.ts
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class AuthenticationService {
+  // URL absolue
+  serverUrl = 'https://album-api.benoithubert.me';
+  // chemin relatif sur le serveur
+  registerPath = '/api/v2/auth/register';
+
+  constructor(private http: HttpClient) { }
+
+  public register(login: string, pwd: string): Observable<{}> {
+    return this.http.post<{}>(
+      `${this.serverUrl}${this.registerPath}`,
+      { login, pwd }
+    );
+  }
+}
+```
+
+> Note : la méthode `register` renvoie non pas une `Promise` (comme on l'avait vu dans `PostService`), mais un `Observable`. On va expliquer le tout un peu plus loin, après avoir vu comment la méthode `register` est appelée depuis `RegisterComponent`.
+
+Dans `register.component.service`, on va :
+
+* importer le nouveau service,
+* le référencer dans les parenthèses du constructeur,
+* appeler sa méthode `register` depuis `onSubmit`
+
+Import du service :
+
+```typescript
+import { AuthenticationService } from '../authentication.service';
+```
+
+Ajout dans les parenthèses du constructeur :
+
+```typescript
+  constructor(private formBuilder: FormBuilder, private authenticationService: AuthenticationService) {
+    // ...
+  }
+```
+
+Appel de `register` :
+
+```typescript
+  onSubmit() {
+      // Récupération des valeurs (username/email et password) par décomposition
+      const { username, password } = this.registerForm.value;
+      this.authenticationService.register(username, password)
+        .subscribe(newUser => {
+          console.log(newUser);
+        })
+    }
+```
+
+**Note** :
+
+* On récupère les valeurs `username` et `password` par décomposition : [MDN](https://developer.mozilla.org/fr/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment) et [article](https://mindsers.blog/fr/post/decomposition-et-destructuration-en-javascript/) (section _Décomposer des objets_).
+* Si `register` renvoyait une `Promise`, on aurait "chaîné" un `.then` derrière l'appel. Comme elle renvoie un `Observable`, on utilise `.subscribe` à la place. On détaille cela dans la section suivante, "Introduction aux Observables".
+
+**Après ces modifications**, l'inscription d'un utilisateur est censée fonctionner, en tenant compte de ces contraintes :
+
+* Dans le champ "Username", il faut saisir **une adresse e-mail**.
+* Le champ "Password" doit contenir **au moins 5 caractères**.
+
+L'application serveur renverra une erreur si l'une de ces deux contraintes n'est pas satisfaite.
+
+## Introduction aux Observables
+
+
